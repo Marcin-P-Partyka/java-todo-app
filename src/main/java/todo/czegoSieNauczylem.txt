@@ -1,0 +1,67 @@
+ENUM
+Jak wygląda enum?
+javapublic enum Priority {
+    LOW,
+    MEDIUM,
+    HIGH
+}
+Jak go używasz?
+java// przypisanie wartości
+Priority waznosc = Priority.HIGH;
+
+// porównanie
+if (waznosc == Priority.HIGH) {
+    System.out.println("Pilne!");
+}
+
+// w konstruktorze
+Task task = new Task(1, "Kupić mleko", Priority.LOW);
+
+===========================================================
+
+Ważne — modyfikatory dostępu pól
+Wszystkie pola są bez słowa kluczowego, czyli mają domyślny dostęp pakietowy.
+W Javie zasada OOP mówi że pola powinny być private — żeby nikt z zewnątrz nie mógł ich modyfikować bezpośrednio,
+tylko przez metody.
+
+============================================================
+
+OPTIONAL
+
+Warto jednak wiedzieć że w nowoczesnej Javie (8+) jest elegantsze rozwiązanie: Optional<Task>.
+Problem z null jest taki że ktoś kto wywołuje metodę może zapomnieć sprawdzić czy wynik nie jest null i dostanie NullPointerException. Optional wymusza świadome obsłużenie braku wartości.
+Wygląda tak:
+javapublic Optional<Task> getTaskById(int id) {
+    // jeśli znaleziono:
+    return Optional.of(znalezioneZadanie);
+    // jeśli nie znaleziono:
+    return Optional.empty();
+}
+A przy wywołaniu:
+javaOptional<Task> task = manager.getTaskById(5);
+if (task.isPresent()) {
+    // rób coś z task.get()
+}
+
+=============================================================
+
+WAZNE
+
+Dziedziczenie (extends) używamy gdy między klasami zachodzi relacja "jest":
+
+Pies jest Zwierzęciem ✅
+ConsoleUI jest TaskManagerem? ❌ — to nie ma sensu
+
+Kompozycja używamy gdy zachodzi relacja "ma" lub "używa":
+
+ConsoleUI używa TaskManagera ✅
+
+W praktyce wygląda to tak — ConsoleUI po prostu trzyma referencję do TaskManagera jako pole:
+klasa ConsoleUI {
+    TaskManager taskManager;  // ← "ma" TaskManagera
+
+    konstruktor(TaskManager taskManager) {
+        this.taskManager = taskManager;
+    }
+}
+
