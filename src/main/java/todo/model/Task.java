@@ -15,7 +15,7 @@ public class Task {
         this.id = id;
         this.nazwa = nazwa;
         this.waznosc = waznosc;
-        dataUtworzenia = LocalDate.now();
+        this.dataUtworzenia = LocalDate.now();
     }
 
     public void setNazwa(String nazwa){this.nazwa = nazwa;}
