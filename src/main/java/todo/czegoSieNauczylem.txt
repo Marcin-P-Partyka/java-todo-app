@@ -65,3 +65,14 @@ klasa ConsoleUI {
     }
 }
 
+Przypomnij sobie co zrobiłeś w tym projekcie:
+
+OOP — klasy, pola, konstruktory, gettery/settery, final
+enum — Priority zamiast magicznych Stringów
+kolekcje — ArrayList, List, iterowanie
+Optional — bezpieczna alternatywa dla null
+kompozycja — ConsoleUI używa TaskManager, TaskManager używa FileStorage
+separacja odpowiedzialności — każda klasa robi jedną rzecz
+JSON + Gson — serializacja, adaptery dla LocalDate
+try-with-resources — bezpieczna praca z plikami
+lambdy — ifPresent(value -> ...)
