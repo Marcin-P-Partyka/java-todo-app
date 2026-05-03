@@ -34,7 +34,7 @@ java -jar todo-app-jar-with-dependencies.jar
 ## Budowanie ze źródeł
 
 ```bash
-git clone https://github.com/twoj-nick/todo-app
+git clone https://github.com/Marcin-P-Partyka/todo-app
 cd todo-app
 ./mvnw package
 java -jar target/todo-app-jar-with-dependencies.jar
