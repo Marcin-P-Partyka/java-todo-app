@@ -1,9 +1,13 @@
 package todo.ui;
 
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.NonBlockingReader;
 import todo.model.Priority;
 import todo.model.Task;
 import todo.service.TaskManager;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -13,12 +17,23 @@ public class ConsoleUI {
 
     private TaskManager taskManager;
     private Scanner scanner = new Scanner(System.in);
+    private Terminal terminal;
+    private NonBlockingReader reader;
+    private int aktywnyIndeks = 0;
     public static final String BLUE = "\u001B[34m";
     public static final String RESET = "\u001B[0m";
-    private static final int WIDTH = 60;
+    private static final int LEFT_WIDTH = 26;
+    private static final int RIGHT_WIDTH = 47;
+    private static final int WIDTH = LEFT_WIDTH + RIGHT_WIDTH + 3;
 
     public ConsoleUI(TaskManager taskManager){
         this.taskManager = taskManager;
+        try {
+            this.terminal = TerminalBuilder.terminal();
+            this.reader = terminal.reader();
+        } catch (IOException e){
+            throw new RuntimeException("Nie mozna otworzyc terminala", e);
+        }
     }
 
     public void printTasks(){
@@ -43,6 +58,55 @@ public class ConsoleUI {
             System.out.println(BLUE + "│ " + RESET
                     + String.format("%-56s", linia)
                     + BLUE + " │" + RESET);
+        }
+    }
+
+    private List<String> buildTaskList(){
+        List<String> lewa = new ArrayList<>();
+        List<Task> listaZadan = taskManager.getAllTasks();
+        for (Task zadanie : listaZadan) {
+            String nazwaSkrocona = zadanie.getNazwa().length() > 16
+                    ? zadanie.getNazwa().substring(0, 16) + "..."
+                    : zadanie.getNazwa();
+            lewa.add(String.format("%-20s %-6s", nazwaSkrocona, zadanie.getWaznosc()));
+        }
+        return lewa;
+    }
+
+    private List<String> buildDetails(Task zadanie){
+        List<String> prawa = new ArrayList<>();
+        prawa.add(String.format("%-10s %s", "ID:", zadanie.getId()));
+        prawa.add(String.format("%-10s %s", "Nazwa:", zadanie.getNazwa()));
+        prawa.add(String.format("%-10s %s", "Waznosc:", zadanie.getWaznosc()));
+        String status = zadanie.isStatus() ? "✓ DONE" : "○ TODO";
+        prawa.add(String.format("%-10s %s", "Status:", status));
+        prawa.add(String.format("%-10s %s", "Deadline:", zadanie.getDeadline()));
+        prawa.add(String.format("%-10s %s", "Utworzono:", zadanie.getDataUtworzenia()));
+        if (zadanie.getOpis() != null){
+            List<String> linie = wrapText(zadanie.getOpis(), RIGHT_WIDTH -2);
+            for (int i = 0; i < linie.size(); i++){
+                if (i == 0) {
+                    prawa.add(String.format("%-10s %s", "Opis:", linie.get(i)));
+                } else {
+                    prawa.add("           " + linie.get(i));
+                }
+            }
+        }
+        return prawa;
+    }
+
+    private void printTwoColumns(List<String> lewa, List<String> prawa){
+        int maxLinii = Math.max(lewa.size(), prawa.size());
+        for (int i = 0; i < maxLinii; i++){
+            String lewaLinia = i < lewa.size() ? lewa.get(i) : "";
+            String prawaLinia = i < prawa.size() ? prawa.get(i) : "";
+            System.out.println(
+                    BLUE + "║ " + RESET +
+                            String.format("%-" + LEFT_WIDTH + "s", lewaLinia) +
+                            BLUE + " ║ " + RESET +
+                            String.format("%-" + RIGHT_WIDTH + "s", prawaLinia) +
+                            BLUE + " ║" + RESET
+            );
         }
     }
 
@@ -78,19 +142,47 @@ public class ConsoleUI {
         return linie;
     }
 
-    public void start(){
+    private void cleanScreen(){
+        System.out.println("\033[H\033[2J");
+        System.out.flush();
+    }
+    public void start() throws IOException, InterruptedException {
+        terminal.enterRawMode();
+        System.out.println("Terminal type: " + terminal.getType());
+        System.out.flush();
+        Thread.sleep(2000);
         while (true){
+            cleanScreen();
             printTopBorder();
             printRow("MENADZER ZADAN");
             printSeparator();
 
-            printTasks();
+            List<Task> lista = taskManager.getAllTasks();
+            Task aktywne = lista.isEmpty() ? null : lista.get(aktywnyIndeks);
+            printTwoColumns(buildTaskList(), buildDetails(aktywne));
             printSeparator();
 
             printRow("[1] Dodaj [2] Ukoncz [3] Usun [0] Wyjscie");
 
             printBottomBorder();
-            System.out.println("Wybierz opcje 0-3: ");
+            int c = reader.read();
+            if (c == 27) {        // strzałka
+                reader.read();    // [
+                int arrow = reader.read();
+                if (arrow == 'A') aktywnyIndeks--;      // góra
+                if (arrow == 'B') aktywnyIndeks++;      // dół
+                System.out.println(aktywnyIndeks);
+            } else if (c == 'a') {  // dodaj
+                // showPopup(...)
+            } else if (c == 'q') {  // wyjście
+                return;
+            }
+
+            // zabezpieczenie przed wyjściem poza listę
+            int rozmiar = taskManager.getAllTasks().size();
+            aktywnyIndeks = Math.clamp(aktywnyIndeks, 0, rozmiar - 1);
+            /*
+            System.out.print("Wybierz opcje 0-3: ");
             int wybor = scanner.nextInt();
             scanner.nextLine();
 
@@ -99,16 +191,16 @@ public class ConsoleUI {
                     return;
                 }
                 case 1: {
-                    System.out.println("Podaj nazwę zadania:");
+                    System.out.print("Podaj nazwę zadania: ");
                     String nazwa = scanner.nextLine();
-                    System.out.println("Podaj ważność (LOW/MEDIUM/HIGH):");
+                    System.out.print("Podaj ważność (LOW/MEDIUM/HIGH): ");
                     Priority waznosc = Priority.valueOf(scanner.nextLine().toUpperCase());
                     taskManager.addTask(nazwa, waznosc);
                     System.out.println("Zadanie dodane!");
                     break;
                 }
                 case 2: {
-                    System.out.println("Podaj id zadania: ");
+                    System.out.print("Podaj id zadania: ");
                     int id = scanner.nextInt();
                     scanner.nextLine();
                     taskManager.completeTask(id);
@@ -116,14 +208,14 @@ public class ConsoleUI {
                     break;
                 }
                 case 3: {
-                    System.out.println("Podaj id zadania: ");
+                    System.out.print("Podaj id zadania: ");
                     int id = scanner.nextInt();
                     scanner.nextLine();
                     taskManager.deleteTask(id);
                     System.out.println("Zadanie usuniete!");
                     break;
                 }
-            }
+            } */
         }
     }
 }
