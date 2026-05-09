@@ -22,16 +22,24 @@ public class ConsoleUI {
     private int aktywnyIndeks = 0;
     public static final String BLUE = "\u001B[34m";
     public static final String RESET = "\u001B[0m";
-    private static final int LEFT_WIDTH = 26;
-    private static final int RIGHT_WIDTH = 47;
-    private static final int WIDTH = LEFT_WIDTH + RIGHT_WIDTH + 3;
+    private static final int LEFT_WIDTH = 27;
+    private static final int RIGHT_WIDTH = 40;
+    private static final int WIDTH = LEFT_WIDTH + RIGHT_WIDTH + 7;
 
     public ConsoleUI(TaskManager taskManager){
+        this(taskManager, buildTerminal());
+    }
+
+    ConsoleUI(TaskManager taskManager, Terminal terminal) {
         this.taskManager = taskManager;
+        this.terminal = terminal;
+        this.reader = terminal.reader();
+    }
+
+    private static Terminal buildTerminal() {
         try {
-            this.terminal = TerminalBuilder.terminal();
-            this.reader = terminal.reader();
-        } catch (IOException e){
+            return TerminalBuilder.terminal();
+        } catch (IOException e) {
             throw new RuntimeException("Nie mozna otworzyc terminala", e);
         }
     }
@@ -55,9 +63,9 @@ public class ConsoleUI {
     private void printRow(String content){
         List<String> newContent = wrapText(content, WIDTH - 4);
         for (String linia : newContent){
-            System.out.println(BLUE + "│ " + RESET
-                    + String.format("%-56s", linia)
-                    + BLUE + " │" + RESET);
+            System.out.println(BLUE + "║ " + RESET
+                    + String.format("%-" + (WIDTH-4) + "s", linia)
+                    + BLUE + " ║" + RESET);
         }
     }
 
@@ -65,8 +73,8 @@ public class ConsoleUI {
         List<String> lewa = new ArrayList<>();
         List<Task> listaZadan = taskManager.getAllTasks();
         for (Task zadanie : listaZadan) {
-            String nazwaSkrocona = zadanie.getNazwa().length() > 16
-                    ? zadanie.getNazwa().substring(0, 16) + "..."
+            String nazwaSkrocona = zadanie.getNazwa().length() > 15
+                    ? zadanie.getNazwa().substring(0, 15) + "..."
                     : zadanie.getNazwa();
             lewa.add(String.format("%-20s %-6s", nazwaSkrocona, zadanie.getWaznosc()));
         }
@@ -122,7 +130,7 @@ public class ConsoleUI {
         System.out.println(BLUE + "╠" + "═".repeat(WIDTH - 2) + "╣" + RESET);
     }
 
-    private List<String> wrapText(String text, int width){
+    List<String> wrapText(String text, int width){
         List<String> linie = new ArrayList<>();
         String[] slowa = text.split(" ");
         String aktualnaLinia = "";
@@ -134,7 +142,9 @@ public class ConsoleUI {
                     aktualnaLinia = aktualnaLinia + " " + slowo;
                 }
             } else {
-                linie.add(aktualnaLinia);
+                if (!aktualnaLinia.isEmpty()) {
+                    linie.add(aktualnaLinia);
+                }
                 aktualnaLinia = slowo;
             }
         }
